@@ -1,0 +1,7 @@
+name = "schedule"
+workers_dev = true
+compatibility_date = "2024-03-28"
+main = "./_build/default/bin/node/bin/main.js"
+
+[ai]
+binding = "ai" 

@@ -1,0 +1,7 @@
+(melange.emit
+ (target node)
+ (libraries jsoo_hello)
+ (modules main handler)
+ (module_systems es6)
+ (preprocess
+  (pps melange.ppx)))
