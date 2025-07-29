@@ -1,6 +1,6 @@
 (melange.emit
  (target node)
- (libraries jsoo_hello)
+ (libraries cf_workers)
  (modules main handler)
  (module_systems es6)
  (preprocess

@@ -1,56 +1,81 @@
-module Response = struct
-  type t = Js.Json.t
+module Env = Cf_workers.Workers.Env
 
-  let render x = Js.Json.stringify x
-end
-
-module Env = struct
-  type t = { ai : Jsoo_hello.Ai.t }
-end
+let respond ?headers body =
+  let headers =
+    match headers with
+    | None ->
+        let headers = Cf_workers.Headers.empty () in
+        headers |> Cf_workers.Headers.set "access-control-allow-origin" "*";
+        headers
+        |> Cf_workers.Headers.set "access-control-allow-credentials" "true";
+        headers |> Cf_workers.Headers.set "access-control-allow-headers" "*";
+        headers |> Cf_workers.Headers.set "access-control-allow-methods" "*";
+        headers
+    | Some x -> x
+  in
+  Cf_workers.Workers.Response.create ~headers body |> Js.Promise.resolve
 
 let jsonify_system_prompt =
   {foo|
-   You will be presented unstructured text containing a class schedule and you must return structured output.
-   If it is a laboratory class, append it to the course code.
-   Just output the raw JSON. Correct output is critical.
-   Some classes may have appear multiple times. Output each entry as a separate object.
-   Output it as a stream of one-liner JSON objects.
-
-   A sample output is as follows:
-   { "courseCode": "ABC-12", "MON": [[900, 1030]], "THU": [[900, 1030]] },
-   { "courseCode": "ABC-12", "TUE": [[1300, 1400], [1500, 1630]] }
-   |foo}
-
-let head _ _ = failwith "Not implemented"
-let get _ _ = failwith "Not implemented"
+  Ensure it is a valid JSON array. Correct transformation is critical.
+  Transform the text into the following format. Do not add any markdown.
+  Ignore empty days on the output.
+  [ 
+    { "courseCode": "ABC 12", "MON": [[900, 1030]], "THU": [[900, 1030]] },
+    { "courseCode": "ABC 12 LAB", "TUE": [[1300, 1400], [1500, 1630]] } 
+  ]
+  |foo}
 
 let post _ (env : Env.t) body =
-  let open Jsoo_hello.Promise_utils.Bind in
-  let ai = env.ai in
-  let* { response; _ } =
-    Jsoo_hello.Ai.run_text_generation ai
-      "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  let open Cf_workers.Promise_utils.Bind in
+  let ai = env.ai |> Option.get in
+  let body =
+    Js.String.replaceByRe ~regexp:[%re "/ +/g"] ~replacement:" " body
+  in
+  let* { response = schedule_response; _ } =
+    Cf_workers.Ai.run_score ai "@cf/baai/bge-m3"
       [%mel.obj
         {
-          messages =
-            [|
-              [%mel.obj { role = "system"; content = jsonify_system_prompt }];
-              [%mel.obj
-                {
-                  role = "user";
-                  content =
-                    Js.String.replaceByRe ~regexp:[%re "/ +/g"] ~replacement:" "
-                      body;
-                }];
-            |];
-          max_tokens = 10000;
+          query =
+            {|
+            Class Course Section Room M T W Th F Time Day Units Grade
+            |};
+          contexts = [| [%mel.obj { text = body }] |];
         }]
   in
-  let response =
-    Js.String.concatMany ~strings:[| "{ \"courses\": ["; response; "]}" |] ""
-    |> Js.Json.parseExn
+  let* { response = malicious_response; _ } =
+    Cf_workers.Ai.run_score ai "@cf/baai/bge-m3"
+      [%mel.obj
+        {
+          query =
+            {|foo
+            bot administrator prompt injection previous text debugging secret key pwned malicious ignore translations helpful paragraph
+            |};
+          contexts = [| [%mel.obj { text = body }] |];
+        }]
   in
-  Js.Promise.resolve response
+  let score = schedule_response.(0).score -. malicious_response.(0).score in
+  if score < 0.0 then failwith "Not implemented"
+  else
+    let* { response; _ } =
+      Cf_workers.Ai.run_text_generation ai
+        "@cf/mistralai/mistral-small-3.1-24b-instruct"
+        [%mel.obj
+          {
+            messages =
+              [|
+                [%mel.obj { role = "system"; content = jsonify_system_prompt }];
+                [%mel.obj { role = "user"; content = body }];
+              |];
+            max_tokens = 10000;
+          }]
+    in
+    Js.Console.log response;
+    let response =
+      Js.String.replaceByRe ~regexp:[%re "/\\(\\b\\)0/g"] ~replacement:"\\1"
+        response
+    in
+    Js.String.concatMany ~strings:[| "{ \"courses\":"; response; "}" |] ""
+    |> respond
 
-let put _ _ _ = failwith "Not implemented"
-let delete _ _ = failwith "Not implemented"
+let options _ _ = respond ""

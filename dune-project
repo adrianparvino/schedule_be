@@ -7,15 +7,15 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github adrianparvino/schedule_be))
 
-(authors "Author Name")
+(authors "Adrian Parvin Ouano")
 
-(maintainers "Maintainer Name")
+(maintainers "Adrian Parvin Ouano")
 
 (license LICENSE)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/adrianparvino/schedule_be)
 
 (package
  (allow_empty)
@@ -25,11 +25,10 @@
  (depends
   ocaml
   (melange
-   (>= 3.0.0))
+   (>= 5.1))
   (dune
    (>= 3.13))
-  hex
-  ppx_jsobject_conv
+  cf_workers
   ppx_deriving
   odoc
   melange-webapi)
