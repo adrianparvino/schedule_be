@@ -19,8 +19,7 @@ let default =
     let handle req =
       let open Cf_workers.Promise_utils.Bind in
       match req with
-      | Cf_workers.Workers.Request.Post { url = "/api/convert"; env; body; _ }
-        ->
+      | Cf_workers.Workers.Request.Post { env; body; _ } ->
           let* body = body () in
           let* response = Handler.convert env body in
           respond env response
