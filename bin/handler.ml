@@ -1,20 +1,5 @@
 module Env = Cf_workers.Workers.Env
 
-let respond ?headers body =
-  let headers =
-    match headers with
-    | None ->
-        let headers = Cf_workers.Headers.empty () in
-        headers |> Cf_workers.Headers.set "access-control-allow-origin" "*";
-        headers
-        |> Cf_workers.Headers.set "access-control-allow-credentials" "true";
-        headers |> Cf_workers.Headers.set "access-control-allow-headers" "*";
-        headers |> Cf_workers.Headers.set "access-control-allow-methods" "*";
-        headers
-    | Some x -> x
-  in
-  Cf_workers.Workers.Response.create ~headers body |> Js.Promise.resolve
-
 let jsonify_system_prompt =
   {foo|
   Ensure it is a valid JSON array. Correct transformation is critical.
@@ -26,7 +11,7 @@ let jsonify_system_prompt =
   ]
   |foo}
 
-let post _ (env : Env.t) body =
+let convert (env : Env.t) body =
   let open Cf_workers.Promise_utils.Bind in
   let ai = env.ai |> Option.get in
   let body =
@@ -76,6 +61,6 @@ let post _ (env : Env.t) body =
         response
     in
     Js.String.concatMany ~strings:[| "{ \"courses\":"; response; "}" |] ""
-    |> respond
+    |> Js.Promise.resolve
 
-let options _ _ = respond ""
+let options _ _ = "" |> Js.Promise.resolve

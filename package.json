@@ -4,7 +4,13 @@
   "version": "0.1.0",
   "description": "Reason hello world for Cloudflare Workers",
   "main": "src/Demo.bs.js",
-  "keywords": ["BuckleScript"],
+  "keywords": [
+    "BuckleScript"
+  ],
   "author": "{{ authors }}",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@swc/cli": "^0.7.8",
+    "@swc/core": "^1.13.3"
+  }
 }

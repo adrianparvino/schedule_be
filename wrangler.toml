@@ -2,13 +2,10 @@ name = "schedule"
 workers_dev = true
 compatibility_date = "2024-03-28"
 main = "./_build/default/bin/node/bin/main.js"
-
-# these will be used in production
 vars = { DISABLE_CORS = "false" }
-
-[env.dev]
-# these will be used only when --env=local
-vars = { DISABLE_CORS = "true" }
+routes = [
+  { pattern = "schedule.adrianpar.vin/api/*", zone_name = "adrianpar.vin" },
+]
 
 [ai]
 binding = "ai" 
@@ -16,3 +13,4 @@ binding = "ai"
 [build]
 command = "dune build"
 watch_dir = "bin"
+
